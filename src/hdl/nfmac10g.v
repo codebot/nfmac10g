@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -52,6 +52,14 @@ module nfmac10g # (
     input        [79:0]      rx_configuration_vector,
     output       [1:0]       status_vector,
 
+    // Xilinx-incompatible control signals
+    `ifdef ENHANCED_CONTROL
+    input [47:0]             cfg_station_macaddr,
+    input                    cfg_rx_pause_enable,
+    input [7:0]              cfg_sub_quanta_count, // number of clock cycles equivalent to 1 quanta
+
+    `endif
+
     // Statistic Vector Signals
     output       [25:0]      tx_statistics_vector,
     output                   tx_statistics_valid,
@@ -95,6 +103,7 @@ module nfmac10g # (
     //-------------------------------------------------------
     wire         [31:0]      rx_good_frames;
     wire         [31:0]      rx_bad_frames;
+    wire rx_pause_active;
 
     //-------------------------------------------------------
     // tx_rst_mod
@@ -139,6 +148,14 @@ module nfmac10g # (
         // XGMII
         .xgmii_txd(xgmii_txd),                                 // I [63:0]
         .xgmii_txc(xgmii_txc),                                 // I [7:0]
+        .rx_pause_active(rx_pause_active),
+        .tx_pause_send(pause_req),
+        .cfg_tx_pause_refresh(pause_val),
+        `ifdef ENHANCED_CONTROL
+        .cfg_station_macaddr(cfg_station_macaddr),
+        `else
+        .cfg_station_macaddr (48'h0),
+        `endif
         // AXIS
         .axis_aresetn(tx_axis_aresetn),                        // I
         .axis_tdata(tx_axis_tdata),                            // I [63:0]
@@ -165,8 +182,17 @@ module nfmac10g # (
         // Stats
         .good_frames(rx_good_frames),                          // O [31:0]
         .bad_frames(rx_bad_frames),                            // O [31:0]
+
+        `ifdef ENHANCED_CONTROL
+        .cfg_rx_pause_enable (cfg_rx_pause_enable),
+        .cfg_sub_quanta_count (cfg_sub_quanta_count),
+        `else
+        .cfg_rx_pause_enable (1'b0),
+        .cfg_sub_quanta_count (8'h0),
+        `endif
         // Conf vectors
         .configuration_vector(rx_configuration_vector),        // I [79:0]
+        .rx_pause_active(rx_pause_active),
         // XGMII
         .xgmii_rxd(xgmii_rxd),                                 // I [63:0]
         .xgmii_rxc(xgmii_rxc),                                 // I [7:0]
@@ -187,6 +213,7 @@ module nfmac10g # (
         assign rx_axis_tvalid = 1'b0;
         assign rx_axis_tlast = 1'b0;
         assign rx_axis_tuser = 'b0;
+        assign rx_pause_active = 1'b0;
     end endgenerate
 
 endmodule // nfmac10g

@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -38,6 +38,12 @@ module tx (
 
     // Conf vectors
     input        [79:0]      configuration_vector,
+    input                    rx_pause_active,
+    input                    tx_pause_send,
+
+    input                    cfg_rx_pause_enable,
+    input [15:0]             cfg_tx_pause_refresh,
+    input [47:0]             cfg_station_macaddr,
 
     // XGMII
     output       [63:0]      xgmii_txd,
@@ -105,7 +111,13 @@ module tx (
         .m_axis_tready(m_axis_tready),                         // I
         .m_axis_tlast(m_axis_tlast),                           // O
         .m_axis_tuser(m_axis_tuser),                           // O [0:0]
+        // Config
+        .cfg_tx_pause_refresh(cfg_tx_pause_refresh),
+        .cfg_station_macaddr(cfg_station_macaddr),
+
         // internal
+        .rx_pause_active(rx_pause_active),
+        .tx_pause_send(tx_pause_send),
         .lane4_start(lane4_start),                             // I
         .dic(dic)                                              // I [1:0]
         );

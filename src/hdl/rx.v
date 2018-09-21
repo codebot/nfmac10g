@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -39,9 +39,12 @@ module rx (
     // Stats
     output       [31:0]      good_frames,
     output       [31:0]      bad_frames,
+    output                   rx_pause_active,
 
     // Conf vectors
     input        [79:0]      configuration_vector,
+    input                    cfg_rx_pause_enable,
+    input [7:0]              cfg_sub_quanta_count, // number of clock cycles equivalent to 1 quanta
 
     // XGMII
     input        [63:0]      xgmii_rxd,
@@ -60,9 +63,10 @@ module rx (
     // Local xgmii2axis
     //-------------------------------------------------------
     //wire                     ??;
+    wire tvalid_i;
 
     //-------------------------------------------------------
-    // Local 
+    // Local
     //-------------------------------------------------------
     //wire         [31:0]      ??;
 
@@ -88,9 +92,26 @@ module rx (
         .aresetn(axis_aresetn),                                // I
         .tdata(axis_tdata),                                    // O [63:0]
         .tkeep(axis_tkeep),                                    // O [7:0]
-        .tvalid(axis_tvalid),                                  // O
+        .tvalid(tvalid_i),                                  // O
         .tlast(axis_tlast),                                    // O
         .tuser(axis_tuser)                                     // O [0:0]
+        );
+
+    rxpause pause0
+      (
+       .clk (clk),
+       .rst (rst),
+       .cfg_rx_pause_enable (cfg_rx_pause_enable),
+       .cfg_sub_quanta_count (cfg_sub_quanta_count),
+       .aresetn (axis_aresetn),
+       .tdata_i(axis_tdata),                                    // O [63:0]
+       .tkeep_i(axis_tkeep),                                    // O [7:0]
+       .tvalid_i(tvalid_i),                                  // O
+       .tlast_i(axis_tlast),                                    // O
+       .tuser_i(axis_tuser),                                     // O [0:0]
+       .tvalid_o(axis_tvalid),
+       .rx_pause_active(rx_pause_active)
+
         );
 
 endmodule // rx

@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -55,19 +55,28 @@ module padding_ctrl (
 
     // internal
     input                    lane4_start,
-    input        [1:0]       dic
+    input        [1:0]       dic,
+
+    // flow control
+    input                    rx_pause_active,
+    input                    tx_pause_send,
+
+    input                    cfg_rx_pause_enable,
+    input [15:0]             cfg_tx_pause_refresh,
+    input [47:0]             cfg_station_macaddr
     );
 
     `include "xgmii_includes.vh"
     // localparam
-    localparam SRES           = 8'b00000001;
-    localparam IDLE           = 8'b00000010;
-    localparam ST             = 8'b00000100;
-    localparam PAD_CHK        = 8'b00001000;
-    localparam W3             = 8'b00010000;
-    localparam W2             = 8'b00100000;
-    localparam ERR_W_LAST     = 8'b01000000;
-    localparam s7             = 8'b10000000;
+    localparam SRES           = 9'b00000001;
+    localparam IDLE           = 9'b00000010;
+    localparam ST             = 9'b00000100;
+    localparam PAD_CHK        = 9'b00001000;
+    localparam W3             = 9'b00010000;
+    localparam W2             = 9'b00100000;
+    localparam ERR_W_LAST     = 9'b01000000;
+    localparam s7             = 9'b10000000;
+    localparam PAUSE          = 9'b1_0000_0000;
 
     //-------------------------------------------------------
     // Local
@@ -77,11 +86,17 @@ module padding_ctrl (
     //-------------------------------------------------------
     // Local adapter
     //-------------------------------------------------------
-    reg          [7:0]       fsm = 'b1;
+    reg          [8:0]       fsm = 'b1;
     reg          [4:0]       trn;
     reg          [63:0]      m_axis_tdata_d0;
     reg                      m_axis_tvalid_d0;
     reg          [7:0]       last_tkeep;
+    reg pause_on;
+    reg [15:0] pause_refresh_cnt;
+
+    // Control Packet Constants
+    wire [47:0] control_da = { 8'h01, 8'h00, 8'h00, 8'hC2, 8'h80, 8'h01 };
+    wire [15:0] control_et = { 8'h08, 8'h88 };
 
     //-------------------------------------------------------
     // assigns
@@ -92,7 +107,7 @@ module padding_ctrl (
     // adapter
     ////////////////////////////////////////////////
     always @(posedge clk) begin
-        
+
         if (inv_aresetn) begin  // rst
             s_axis_tready <= 1'b0;
             m_axis_tvalid <= 1'b0;
@@ -109,6 +124,8 @@ module padding_ctrl (
             case (fsm)
 
                 SRES : begin
+                    pause_refresh_cnt <= 16'h0;
+                    pause_on <= 1'b0;
                     m_axis_tuser <= 'b0;
                     if (m_axis_tready) begin
                         s_axis_tready <= 1'b1;
@@ -116,14 +133,23 @@ module padding_ctrl (
                     end
                 end
 
+                // check for TX pause at SOP
                 IDLE : begin
-                    m_axis_tdata_d0 <= s_axis_tdata;
-                    m_axis_tkeep <= 8'hFF;
-                    trn <= 1;
-                    if (s_axis_tvalid) begin
+                    if (s_axis_tvalid && s_axis_tready) begin
                         m_axis_tvalid_d0 <= 1'b1;
                         fsm <= ST;
-                    end
+                        m_axis_tdata_d0 <= s_axis_tdata;
+                        m_axis_tkeep <= 8'hFF;
+                        trn <= 1;
+                    end if ((tx_pause_send && !pause_on) || (pause_on && (pause_refresh_cnt >= cfg_tx_pause_refresh)))
+                      begin
+                        trn <= 0;
+                        fsm <= PAUSE;
+                        s_axis_tready <= 1'b0;
+                        m_axis_tvalid_d0 <= 1'b0;
+                      end
+                    else
+                      s_axis_tready <= ~rx_pause_active;
                 end
 
                 ST : begin
@@ -273,6 +299,34 @@ module padding_ctrl (
                         fsm <= W2;
                     end
                 end
+
+                // Send pause frames for as long as tx_pause_send is asserted
+                PAUSE :
+                  begin
+                    m_axis_tvalid <= 1'b1;
+                    m_axis_tkeep  <= (trn == 'd7) ? 8'h0F : 8'hFF;
+                    m_axis_tlast  <= (trn == 'd7);
+                    m_axis_tuser[0] <= 1'b1;
+                    pause_refresh_cnt <= 16'h0;
+
+                    case (trn)
+                      0 : m_axis_tdata <= { cfg_station_macaddr[39:32], cfg_station_macaddr[47:40], control_da };
+                      1 : m_axis_tdata <= { 8'h01, 8'h00, control_et, cfg_station_macaddr[7:0], cfg_station_macaddr[15:8],
+                                            cfg_station_macaddr[23:16], cfg_station_macaddr[31:24]};
+                      2 : m_axis_tdata <= { 48'h0, (tx_pause_send) ? 16'hFFFF : 16'h0 };
+                      default : m_axis_tdata <= 64'h0;
+                    endcase
+
+                    if (m_axis_tvalid && m_axis_tready)
+                      begin
+                        if (trn == 8)
+                          begin
+                            m_axis_tvalid <= 1'b0;
+                            fsm <= IDLE;
+                          end
+                        else trn <= trn + 1;
+                      end
+                  end
 
                 default : begin
                     fsm <= SRES;
