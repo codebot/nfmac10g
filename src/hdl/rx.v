@@ -63,7 +63,7 @@ module rx (
     // Local xgmii2axis
     //-------------------------------------------------------
     //wire                     ??;
-    wire tvalid_i;
+    wire tuser_i;
 
     //-------------------------------------------------------
     // Local
@@ -92,9 +92,9 @@ module rx (
         .aresetn(axis_aresetn),                                // I
         .tdata(axis_tdata),                                    // O [63:0]
         .tkeep(axis_tkeep),                                    // O [7:0]
-        .tvalid(tvalid_i),                                  // O
+        .tvalid(axis_tvalid),                                  // O
         .tlast(axis_tlast),                                    // O
-        .tuser(axis_tuser)                                     // O [0:0]
+        .tuser(tuser_i)                                     // O [0:0]
         );
 
     rxpause pause0
@@ -108,8 +108,8 @@ module rx (
        .tkeep_i(axis_tkeep),                                    // O [7:0]
        .tvalid_i(tvalid_i),                                  // O
        .tlast_i(axis_tlast),                                    // O
-       .tuser_i(axis_tuser),                                     // O [0:0]
-       .tvalid_o(axis_tvalid),
+       .tuser_i(tuser_i),                                     // O [0:0]
+       .tuser_o(axis_tuser),
        .rx_pause_active(rx_pause_active)
 
         );

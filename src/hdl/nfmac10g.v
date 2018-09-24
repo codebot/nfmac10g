@@ -30,6 +30,9 @@
 `timescale 1ns / 1ps
 //`default_nettype none
 
+// turns on non-Xilinx input and output ports
+`define ENHANCED_CONTROL 1
+
 module nfmac10g # (
     parameter C_TX_SUBSYS_EN = 1,
     parameter C_RX_SUBSYS_EN = 1
