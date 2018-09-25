@@ -111,6 +111,7 @@ module padding_ctrl (
         if (inv_aresetn) begin  // rst
             s_axis_tready <= 1'b0;
             m_axis_tvalid <= 1'b0;
+            m_axis_tvalid_d0 <= 1'b0;
             fsm <= SRES;
         end
 
@@ -305,8 +306,8 @@ module padding_ctrl (
                   begin
                     m_axis_tvalid <= 1'b1;
                     m_axis_tkeep  <= (trn == 'd7) ? 8'h0F : 8'hFF;
-                    m_axis_tlast  <= (trn == 'd7);
-                    m_axis_tuser[0] <= 1'b1;
+                    m_axis_tlast  <= 1'b0; // not used
+                    m_axis_tuser[0] <= 1'b0; // pause frames are always valid
                     pause_refresh_cnt <= 16'h0;
 
                     case (trn)
