@@ -152,6 +152,22 @@ module rxpause (
       endcase
     end
 
+  always @(posedge clk)
+    begin
+      if (rst)
+        begin
+          pause_count <= 0;
+          state <= s_idle;
+          opcode <= 16'h0;
+        end
+      else
+        begin
+          pause_count <= nxt_pause_count;
+          state <= nxt_state;
+          opcode <= nxt_opcode;
+        end
+    end
+
 endmodule // xgmii2axis
 
 //////////////////////////////////////////////////////////////////////////////
