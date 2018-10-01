@@ -60,6 +60,7 @@ module nfmac10g # (
     input [47:0]             cfg_station_macaddr,
     input                    cfg_rx_pause_enable,
     input [7:0]              cfg_sub_quanta_count, // number of clock cycles equivalent to 1 quanta
+    input                    carrier_sense,
 
     `endif
 
@@ -156,8 +157,10 @@ module nfmac10g # (
         .cfg_tx_pause_refresh(pause_val),
         `ifdef ENHANCED_CONTROL
         .cfg_station_macaddr(cfg_station_macaddr),
+        .carrier_sense(carrier_sense),
         `else
         .cfg_station_macaddr (48'h0),
+        .carrier_sense(1'b0),
         `endif
         // AXIS
         .axis_aresetn(tx_axis_aresetn),                        // I

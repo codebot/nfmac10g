@@ -56,6 +56,7 @@ module padding_ctrl (
     // internal
     input                    lane4_start,
     input        [1:0]       dic,
+    input                    carrier_sense,
 
     // flow control
     input                    rx_pause_active,
@@ -121,6 +122,8 @@ module padding_ctrl (
             m_axis_tvalid <= m_axis_tvalid_d0;
             m_axis_tlast <= 1'b0;
             m_axis_tuser[0] <= 1'b0;
+            if (pause_on)
+              pause_refresh_cnt <= pause_refresh_cnt + 16'h1;
 
             case (fsm)
 
@@ -134,18 +137,25 @@ module padding_ctrl (
                     end
                 end
 
-                // check for TX pause at SOP
+                // When carrier sense is asserted, link is unavailable
+                // and all transmission should be deferred.
+                // When idle, check for pause state and send a pause
+                // frame on state change.
                 IDLE : begin
-                    if (s_axis_tvalid && s_axis_tready) begin
+                    if (carrier_sense) begin
+                      m_axis_tvalid_d0 <= 1'b0;
+                      s_axis_tready <= 1'b0;
+                    end else if (s_axis_tvalid && s_axis_tready) begin
                         m_axis_tvalid_d0 <= 1'b1;
                         fsm <= ST;
                         m_axis_tdata_d0 <= s_axis_tdata;
                         m_axis_tkeep <= 8'hFF;
                         trn <= 1;
-                    end if ((tx_pause_send && !pause_on) || (pause_on && (pause_refresh_cnt >= cfg_tx_pause_refresh)))
+                    end else if ((tx_pause_send && !pause_on) || (!tx_pause_send && pause_on)|| (pause_on && (pause_refresh_cnt >= cfg_tx_pause_refresh)))
                       begin
                         trn <= 0;
                         fsm <= PAUSE;
+                        pause_on <= tx_pause_send;
                         s_axis_tready <= 1'b0;
                         m_axis_tvalid_d0 <= 1'b0;
                       end
@@ -306,7 +316,7 @@ module padding_ctrl (
                   begin
                     m_axis_tvalid <= 1'b1;
                     m_axis_tkeep  <= (trn == 'd7) ? 8'h0F : 8'hFF;
-                    m_axis_tlast  <= 1'b0; // not used
+                    m_axis_tlast  <= (trn == 'd7);
                     m_axis_tuser[0] <= 1'b0; // pause frames are always valid
                     pause_refresh_cnt <= 16'h0;
 
@@ -318,6 +328,7 @@ module padding_ctrl (
                       default : m_axis_tdata <= 64'h0;
                     endcase
 
+                    trn <= trn + 1;
                     if (m_axis_tvalid && m_axis_tready)
                       begin
                         if (trn == 8)
@@ -325,7 +336,6 @@ module padding_ctrl (
                             m_axis_tvalid <= 1'b0;
                             fsm <= IDLE;
                           end
-                        else trn <= trn + 1;
                       end
                   end
 

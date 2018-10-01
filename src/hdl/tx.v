@@ -48,6 +48,7 @@ module tx (
     // XGMII
     output       [63:0]      xgmii_txd,
     output       [7:0]       xgmii_txc,
+    input                    carrier_sense,
 
     // AXIS
     input                    axis_aresetn,
@@ -116,6 +117,7 @@ module tx (
         .cfg_station_macaddr(cfg_station_macaddr),
 
         // internal
+        .carrier_sense(carrier_sense),
         .rx_pause_active(rx_pause_active),
         .tx_pause_send(tx_pause_send),
         .lane4_start(lane4_start),                             // I

@@ -76,6 +76,7 @@ module rxpause (
       tuser_o = tuser_i;
       nxt_opcode = opcode;
       new_quanta = 1'b0;
+      nxt_pause_count = pause_count;
 
       // count down pause counter until zero, link is paused when
       // count > 0.  nxt_pause_count can be overriden later to set
