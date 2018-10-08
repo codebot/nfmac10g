@@ -77,24 +77,25 @@ module rxpause (
       nxt_opcode = opcode;
       new_quanta = 1'b0;
       nxt_pause_count = pause_count;
-      nxt_sub_count = sub_count;
 
       // count down pause counter until zero, link is paused when
       // count > 0.  nxt_pause_count can be overriden later to set
       // new quanta.
-      if ((pause_count > 0) && cfg_rx_pause_enable) begin
-        if (sub_count == (cfg_sub_quanta_count-1)) begin
+      if ((pause_count > 0) && cfg_rx_pause_enable)
+        begin
+          if (sub_count == (cfg_sub_quanta_count-1))
+            begin
+              nxt_sub_count = 0;
+              nxt_pause_count = pause_count - 1;
+            end
+          else
+            nxt_sub_count = sub_count + 1;
+        end
+      else
+        begin
+          nxt_pause_count = pause_count;
           nxt_sub_count = 0;
-          nxt_pause_count = pause_count - 1;
         end
-        else begin
-          nxt_sub_count = sub_count + 1;
-        end
-      end
-      else begin
-        nxt_pause_count = pause_count;
-        nxt_sub_count = 0;
-      end
 
       case (state)
         // look for control frame MAC DA
@@ -157,14 +158,12 @@ module rxpause (
       if (rst)
         begin
           pause_count <= 0;
-          sub_count <= 0;
           state <= s_idle;
           opcode <= 16'h0;
         end
       else
         begin
           pause_count <= nxt_pause_count;
-          sub_count <= nxt_sub_count;
           state <= nxt_state;
           opcode <= nxt_opcode;
         end
