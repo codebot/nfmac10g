@@ -106,7 +106,7 @@ module rx (
        .aresetn (axis_aresetn),
        .tdata_i(axis_tdata),                                    // O [63:0]
        .tkeep_i(axis_tkeep),                                    // O [7:0]
-       .tvalid_i(tvalid_i),                                  // O
+       .tvalid_i(axis_tvalid),
        .tlast_i(axis_tlast),                                    // O
        .tuser_i(tuser_i),                                     // O [0:0]
        .tuser_o(axis_tuser),

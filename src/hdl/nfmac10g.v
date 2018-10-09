@@ -91,7 +91,9 @@ module nfmac10g # (
     output       [7:0]       rx_axis_tkeep,
     output                   rx_axis_tvalid,
     output                   rx_axis_tlast,
-    output       [0:0]       rx_axis_tuser
+    output       [0:0]       rx_axis_tuser,
+    output       [31:0]      rx_good_frames,
+    output       [31:0]      rx_bad_frames
     );
 
     //-------------------------------------------------------
@@ -105,8 +107,6 @@ module nfmac10g # (
     //-------------------------------------------------------
     // Local Rx
     //-------------------------------------------------------
-    wire         [31:0]      rx_good_frames;
-    wire         [31:0]      rx_bad_frames;
     wire rx_pause_active;
 
     //-------------------------------------------------------

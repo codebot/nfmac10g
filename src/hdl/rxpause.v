@@ -77,79 +77,82 @@ module rxpause (
       nxt_opcode = opcode;
       new_quanta = 1'b0;
       nxt_pause_count = pause_count;
+      nxt_sub_count = sub_count;
 
       // count down pause counter until zero, link is paused when
       // count > 0.  nxt_pause_count can be overriden later to set
       // new quanta.
-      if ((pause_count > 0) && cfg_rx_pause_enable)
-        begin
-          if (sub_count == (cfg_sub_quanta_count-1))
-            begin
-              nxt_sub_count = 0;
-              nxt_pause_count = pause_count - 1;
-            end
-          else
-            nxt_sub_count = sub_count + 1;
-        end
-      else
-        begin
-          nxt_pause_count = pause_count;
+      if ((pause_count > 0) && cfg_rx_pause_enable) begin
+        if (sub_count == (cfg_sub_quanta_count-1)) begin
           nxt_sub_count = 0;
+          nxt_pause_count = pause_count - 1;
         end
+        else begin
+          nxt_sub_count = sub_count + 1;
+        end
+      end
+      else begin
+        nxt_pause_count = pause_count;
+        nxt_sub_count = 0;
+      end
 
       case (state)
         // look for control frame MAC DA
-        s_idle :
-          begin
-            if (tvalid_i && (tdata_i[47:0] == control_da))
+        s_idle : begin
+          if (tvalid_i) begin
+            if (tdata_i[47:0] == control_da) begin
               nxt_state = s_control_1;
-            else
+            end
+            else begin
               nxt_state = s_normal;
+            end
           end
+        end
 
         // look for control frame MAC ET
-        s_control_1 :
-          begin
-            if (tvalid_i && (tdata_i[47:32] == control_et))
-              begin
-                nxt_opcode = { tdata_i[55:48], tdata_i[63:56]};
-                nxt_state = s_control_2;
-              end
-            else
+        s_control_1 : begin
+          if (tvalid_i) begin
+            if (tdata_i[47:32] == control_et) begin
+              nxt_opcode = {tdata_i[55:48], tdata_i[63:56]};
+              nxt_state = s_control_2;
+            end
+            else begin
               nxt_state = s_normal;
+            end
           end
+        end
 
         // check that control opcode is for pause frame, if so
         // wait for EOP to apply
-        s_control_2 :
-          begin
-            if (tvalid_i && (opcode == PAUSE_OPCODE))
-              begin
-                nxt_quanta = { tdata_i[7:0], tdata_i[15:8]};
-                nxt_state = s_control_3;
-              end
-            else
+        s_control_2 : begin
+          if (tvalid_i) begin 
+            if (opcode == PAUSE_OPCODE) begin
+              nxt_quanta = { tdata_i[7:0], tdata_i[15:8]};
+              nxt_state = s_control_3;
+            end
+            else begin
               nxt_state = s_normal;
+            end
           end
+        end
 
         // wait for EOP to check for valid CRC at the end of the frame
         // if frame is valid, load new quanta into pause counter
-        s_control_3 :
-          begin
-            if (tvalid_i && tlast_i)
-              begin
-                nxt_tuser_o = 1'b0;
-                if (tuser_i)
-                  nxt_pause_count = quanta;
-              end
+        s_control_3 : begin
+          if (tvalid_i && tlast_i) begin
+            nxt_tuser_o = 1'b0;
+            nxt_state = s_idle;
+            if (tuser_i) begin
+              nxt_pause_count = quanta;
+            end
           end
+        end
 
         // wait for EOP on non-pause packets
-        s_normal :
-          begin
-            if (tvalid_i && tlast_i)
-              nxt_state = s_idle;
-          end
+        s_normal : begin
+          if (tvalid_i && tlast_i)
+            nxt_state = s_idle;
+        end
       endcase
     end
 
@@ -158,14 +161,18 @@ module rxpause (
       if (rst)
         begin
           pause_count <= 0;
+          sub_count <= 0;
           state <= s_idle;
           opcode <= 16'h0;
+          quanta <= 16'h0;
         end
       else
         begin
           pause_count <= nxt_pause_count;
+          sub_count <= nxt_sub_count;
           state <= nxt_state;
           opcode <= nxt_opcode;
+          quanta <= nxt_quanta;
         end
     end
 
