@@ -135,10 +135,6 @@ module nfmac10g # (
     assign tx_clk = tx_clk0;
     assign rx_clk = rx_clk0;
     assign status_vector = 'b0;
-    assign tx_statistics_vector = 'b0;
-    assign tx_statistics_valid = 'b0;
-    assign rx_statistics_vector = 'b0;
-    assign rx_statistics_valid = 'b0;
 
     //-------------------------------------------------------
     // Tx
@@ -149,6 +145,8 @@ module nfmac10g # (
         .rst(tx_rst),                                          // I
         // Conf vectors
         .configuration_vector(tx_configuration_vector),        // I [79:0]
+        .tx_statistics_vector(tx_statistics_vector),
+        .tx_statistics_valid(tx_statistics_valid),
         // XGMII
         .xgmii_txd(xgmii_txd),                                 // I [63:0]
         .xgmii_txc(xgmii_txc),                                 // I [7:0]
@@ -176,6 +174,8 @@ module nfmac10g # (
         assign xgmii_txd = 64'h0707070707070707;
         assign xgmii_txc = 8'hFF;
         assign tx_axis_tready = 1'b0;
+        assign tx_statistics_valid = 1'b0;
+        assign tx_statistics_vector = 'h0;
     end endgenerate
 
     //-------------------------------------------------------
@@ -196,6 +196,9 @@ module nfmac10g # (
         .cfg_rx_pause_enable (1'b0),
         .cfg_sub_quanta_count (8'h0),
         `endif
+
+        .rx_statistics_vector(rx_statistics_vector),
+        .rx_statistics_valid(rx_statistics_valid),
         // Conf vectors
         .configuration_vector(rx_configuration_vector),        // I [79:0]
         .rx_pause_active(rx_pause_active),
@@ -219,7 +222,12 @@ module nfmac10g # (
         assign rx_axis_tvalid = 1'b0;
         assign rx_axis_tlast = 1'b0;
         assign rx_axis_tuser = 'b0;
+
         assign rx_pause_active = 1'b0;
+
+        assign rx_statistics_vector = 'b0;
+        assign rx_statistics_valid = 1'b0;
+
     end endgenerate
 
 endmodule // nfmac10g

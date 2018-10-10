@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -53,6 +53,44 @@
     localparam XGMII_ERROR_L4_C = 8'h10;
 
     localparam CRC802_3_PRESET = 32'hFFFFFFFF;
+
+    ////////////////////////////////////////////////
+    // Statistics vector bit definitions
+    ////////////////////////////////////////////////
+
+    `define STAT_RX_SIZE 30
+    `define STAT_RX_OCTETS      13:0
+    `define STAT_RX_GOOD_PKT      14
+    `define STAT_RX_SMALL         15     // less than 64B long
+    `define STAT_RX_JABBER        16     // beyond max len w/ bad CRC
+    `define STAT_RX_OVERSIZE      17     // beyond max len w/ good CRC
+    `define STAT_RX_UNDERSIZE     18     // under minimum w/ good CRC
+    `define STAT_RX_FRAGMENT      19     // under minimum w/ bad CRC
+    `define STAT_RX_64B           20     // received 64B frame
+    `define STAT_RX_65_127B       21     // remaining bucket counters follow
+    `define STAT_RX_128_255B      22
+    `define STAT_RX_256_511B      23
+    `define STAT_RX_512_1023B     24
+    `define STAT_RX_1024_1518B    25
+    `define STAT_RX_1519_1522B    26
+    `define STAT_RX_1523_1548B    27
+    `define STAT_RX_1549_2047B    28
+    `define STAT_RX_2048_MAX      29
+
+    `define STAT_TX_SIZE          25
+    `define STAT_TX_OCTETS      13:0
+    `define STAT_TX_GOOD          14
+    `define STAT_TX_64B           15
+    `define STAT_TX_65_127B       16     // remaining bucket counters follow
+    `define STAT_TX_128_255B      17
+    `define STAT_TX_256_511B      18
+    `define STAT_TX_512_1023B     19
+    `define STAT_TX_1024_1518B    20
+    `define STAT_TX_1519_1522B    21
+    `define STAT_TX_1523_1548B    22
+    `define STAT_TX_1549_2047B    23
+    `define STAT_TX_2048_MAX      24
+
 
     ////////////////////////////////////////////////
     // sof_lane0
