@@ -45,6 +45,8 @@ module rx (
     input        [79:0]      configuration_vector,
     input                    cfg_rx_pause_enable,
     input [7:0]              cfg_sub_quanta_count, // number of clock cycles equivalent to 1 quanta
+    output       [29:0]      rx_statistics_vector,
+    output                   rx_statistics_valid,
 
     // XGMII
     input        [63:0]      xgmii_rxd,
@@ -85,6 +87,8 @@ module rx (
         .bad_frames(bad_frames),                               // O [31:0]
         // Conf vectors
         .configuration_vector(configuration_vector),           // I [79:0]
+        .rx_statistics_valid(rx_statistics_valid),
+        .rx_statistics_vector(rx_statistics_vector),
         // XGMII
         .xgmii_d(xgmii_rxd),                                   // I [63:0]
         .xgmii_c(xgmii_rxc),                                   // I [7:0]

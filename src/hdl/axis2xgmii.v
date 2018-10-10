@@ -129,7 +129,7 @@ module axis2xgmii (
       tx_statistics_valid <= 1'b1;
       if (bcount == 14'd64)
         tx_statistics_vector[`STAT_TX_64B] = 1'b1;
-      else if ((bcount > 14'd64) && (bcount <= 14'd127)
+      else if ((bcount > 14'd64) && (bcount <= 14'd127))
         tx_statistics_vector[`STAT_TX_65_127B] = 1'b1;
       else if ((bcount > 14'd127) && (bcount <= 14'd255))
         tx_statistics_vector[`STAT_TX_128_255B] = 1'b1;
@@ -148,6 +148,7 @@ module axis2xgmii (
       else if (bcount > 14'd2047)
         tx_statistics_vector[`STAT_TX_2048_MAX] = 1'b1;
       tx_statistics_vector[`STAT_TX_OCTETS] <= bcount;
+    end
     endtask
 
     ////////////////////////////////////////////////
