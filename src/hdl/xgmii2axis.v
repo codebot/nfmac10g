@@ -3,7 +3,7 @@
 //
 // Author: Marco Forconesi
 //
-// This software was developed with the support of 
+// This software was developed with the support of
 // Prof. Gustavo Sutter and Prof. Sergio Lopez-Buedo and
 // University of Cambridge Computer Laboratory NetFPGA team.
 //
@@ -42,6 +42,8 @@ module xgmii2axis (
 
     // Conf vectors
     input        [79:0]      configuration_vector,
+    output reg   [29:0]      rx_statistics_vector,
+    output reg               rx_statistics_valid,
 
     // XGMII
     input        [63:0]      xgmii_d,
@@ -119,7 +121,7 @@ module xgmii2axis (
     // output
     ////////////////////////////////////////////////
     always @(posedge clk) begin
-        
+
         if (inv_aresetn) begin  // aresetn
             tvalid <= 1'b0;
             synch <= 1'b0;
@@ -146,10 +148,12 @@ module xgmii2axis (
     // adapter
     ////////////////////////////////////////////////
     always @(posedge clk) begin
-        
+
         if (rst) begin  // rst
             tvalid_i <= 1'b0;
             fsm <= SRES;
+            rx_statistics_valid <= 1'b0;
+            rx_statistics_vector <= 30'h0;
         end
 
         else begin  // not rst

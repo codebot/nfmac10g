@@ -121,6 +121,8 @@ module tx (
         // internal
         .lane4_start(lane4_start),                             // O
         .dic_o(dic),                                           // O [1:0]
+        .tx_statistics_valid(tx_statistics_valid),
+        .tx_statistics_vector(tx_statistics_vector),
         // XGMII
         .xgmii_d(xgmii_txd),                                   // O [63:0]
         .xgmii_c(xgmii_txc),                                   // O [7:0]
