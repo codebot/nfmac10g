@@ -74,6 +74,7 @@ module rxpause (
       nxt_state = state;
       tuser_o = tuser_i;
       nxt_opcode = opcode;
+      nxt_quanta = quanta;
       new_quanta = 1'b0;
       nxt_pause_count = pause_count;
       nxt_sub_count = sub_count;
