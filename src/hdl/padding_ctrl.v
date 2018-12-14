@@ -94,6 +94,7 @@ module padding_ctrl (
     reg          [7:0]       last_tkeep;
     reg pause_on;
     reg [15:0] pause_refresh_cnt;
+    reg [1:0]  rx_pause_active_sync;
 
     // Control Packet Constants
     wire [47:0] control_da = { 8'h01, 8'h00, 8'h00, 8'hC2, 8'h80, 8'h01 };
@@ -107,6 +108,10 @@ module padding_ctrl (
     ////////////////////////////////////////////////
     // adapter
     ////////////////////////////////////////////////
+    
+    always @(posedge clk)
+      rx_pause_active_sync <= { rx_pause_active_sync[0], rx_pause_active };
+
     always @(posedge clk) begin
 
         if (inv_aresetn) begin  // rst
@@ -160,7 +165,7 @@ module padding_ctrl (
                         m_axis_tvalid_d0 <= 1'b0;
                       end
                     else
-                      s_axis_tready <= ~rx_pause_active;
+                      s_axis_tready <= ~rx_pause_active_sync[1];
                 end
 
                 ST : begin

@@ -47,7 +47,7 @@ module rxpause (
     input       cfg_rx_pause_enable,
     input [7:0] cfg_sub_quanta_count, // number of clock cycles equivalent to 1 quanta
                                   // at 156.25Mhz this should be 8
-    output      rx_pause_active         // stop TX transmission
+    output reg  rx_pause_active         // stop TX transmission
 
     );
 
@@ -66,7 +66,6 @@ module rxpause (
   wire [47:0] control_da = { 8'h01, 8'h00, 8'h00, 8'hC2, 8'h80, 8'h01 };
   wire [15:0] control_et = { 8'h08, 8'h88 };
 
-  assign rx_pause_active = (pause_count > 0);
 
   // tuser_o used to drop pause frames by forcing bad CRC
 
@@ -75,6 +74,7 @@ module rxpause (
       nxt_state = state;
       tuser_o = tuser_i;
       nxt_opcode = opcode;
+      nxt_quanta = quanta;
       new_quanta = 1'b0;
       nxt_pause_count = pause_count;
       nxt_sub_count = sub_count;
@@ -165,6 +165,7 @@ module rxpause (
           state <= s_idle;
           opcode <= 16'h0;
           quanta <= 16'h0;
+          rx_pause_active <= 1'b0;
         end
       else
         begin
@@ -173,6 +174,7 @@ module rxpause (
           state <= nxt_state;
           opcode <= nxt_opcode;
           quanta <= nxt_quanta;
+          rx_pause_active <= (pause_count > 0);
         end
     end
 
