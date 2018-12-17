@@ -141,6 +141,8 @@ module xgmii2axis (
                 tvalid <= 1'b0;
             end
 
+          if (tlast_i)
+            set_stats(len, tuser_i);
         end     // not aresetn
     end  //always
 
@@ -225,7 +227,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                          set_stats(len);
                         end
                         8'hFE : begin
                             len <= len + 1;
@@ -236,7 +237,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                          set_stats(len+1);
                         end
                         8'hFC : begin
                             len <= len + 2;
@@ -247,7 +247,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                          set_stats(len+2);
                         end
                         8'hF8 : begin
                             len <= len + 3;
@@ -258,7 +257,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                          set_stats(len+3);
                         end
                         8'hF0 : begin
                             len <= len + 4;
@@ -268,7 +266,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                          set_stats(len+4);
                         end
                         8'hE0 : begin
                             len <= len + 5;
@@ -299,7 +296,6 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tvalid_i <= 1'b1;
                             fsm <= IDLE;
-                          set_stats(len);
                         end
                     endcase
                 end
@@ -317,7 +313,6 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
-                        set_stats(len);
                     end
                 end
 
@@ -332,7 +327,6 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
-                        set_stats(len);
                     end
                 end
 
@@ -361,7 +355,6 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
-                            set_stats(len);
                         end
                         8'hFE : begin
                             len <= len + 1;
@@ -424,7 +417,6 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tvalid_i <= 1'b1;
                             fsm <= IDLE;
-                            set_stats(len);
                         end
                     endcase
                 end
@@ -446,13 +438,11 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
-                        set_stats(len);
                     end
                 end
 
                 default : begin
                     fsm <= IDLE;
-                    set_stats(len);
                 end
 
             endcase
@@ -461,9 +451,18 @@ module xgmii2axis (
   
     task set_stats;
       input [13:0] bcount;
+      input crc_ok;
     begin
       rx_statistics_valid <= 1'b1;
-      if (bcount == 14'd64)
+
+      if (bcount < 14'd64) 
+        begin
+          if (crc_ok)
+            rx_statistics_vector[`STAT_RX_SMALL] = 1'b1;
+          else
+            rx_statistics_vector[`STAT_RX_FRAGMENT] = 1'b1;
+        end
+      else if (bcount == 14'd64)
         rx_statistics_vector[`STAT_RX_64B] = 1'b1;
       else if ((bcount > 14'd64) && (bcount <= 14'd127))
         rx_statistics_vector[`STAT_RX_65_127B] = 1'b1;
@@ -481,8 +480,19 @@ module xgmii2axis (
         rx_statistics_vector[`STAT_RX_1523_1548B] = 1'b1;
       else if ((bcount > 14'd1548) && (bcount <= 14'd2047))
         rx_statistics_vector[`STAT_RX_1549_2047B] = 1'b1;
-      else if (bcount > 14'd2047)
+      else if ((bcount > 14'd2047) && (bcount <= `RX_MTU))
         rx_statistics_vector[`STAT_RX_2048_MAX] = 1'b1;
+      else 
+        begin
+          if (crc_ok)
+            rx_statistics_vector[`STAT_RX_OVERSIZE] = 1'b1;
+          else
+            rx_statistics_vector[`STAT_RX_JABBER] = 1'b1;
+        end
+      if ((bcount >= 14'd64) && (bcount <= `RX_MTU) && crc_ok)
+        begin
+          rx_statistics_vector[`STAT_RX_GOOD_PKT] = 1'b1;
+        end
       rx_statistics_vector[`STAT_RX_OCTETS] <= bcount;
     end
     endtask

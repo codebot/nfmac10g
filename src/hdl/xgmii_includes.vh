@@ -58,6 +58,8 @@
     // Statistics vector bit definitions
     ////////////////////////////////////////////////
 
+    `define RX_MTU             10000
+
     `define STAT_RX_SIZE 30
     `define STAT_RX_OCTETS      13:0
     `define STAT_RX_GOOD_PKT      14
