@@ -317,6 +317,7 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
+                        set_stats(len);
                     end
                 end
 
@@ -331,6 +332,7 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
+                        set_stats(len);
                     end
                 end
 
@@ -359,6 +361,7 @@ module xgmii2axis (
                                 tuser_i[0] <= 1'b1;
                             end
                             fsm <= IDLE;
+                            set_stats(len);
                         end
                         8'hFE : begin
                             len <= len + 1;
@@ -421,6 +424,7 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tvalid_i <= 1'b1;
                             fsm <= IDLE;
+                            set_stats(len);
                         end
                     endcase
                 end
@@ -442,11 +446,13 @@ module xgmii2axis (
                     end
                     else begin
                         fsm <= IDLE;
+                        set_stats(len);
                     end
                 end
 
                 default : begin
                     fsm <= IDLE;
+                    set_stats(len);
                 end
 
             endcase
