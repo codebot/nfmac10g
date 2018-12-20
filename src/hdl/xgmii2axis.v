@@ -156,6 +156,31 @@ module xgmii2axis (
             fsm <= SRES;
             rx_statistics_valid <= 1'b0;
             rx_statistics_vector <= 30'h0;
+	  /*AUTORESET*/
+	  // Beginning of autoreset for uninitialized flops
+	  aux_dw <= 32'h0;
+	  bad_frames <= 32'h0;
+	  c_reg <= 8'h0;
+	  calcted_crc <= 32'h0;
+	  chk_tchar <= 1'h0;
+	  crc_32 <= 32'h0;
+	  crc_32_4B <= 32'h0;
+	  crc_32_5B <= 32'h0;
+	  crc_32_6B <= 32'h0;
+	  crc_32_7B <= 32'h0;
+	  d_reg <= 64'h0;
+	  good_frames <= 32'h0;
+	  inbound_frame <= 1'h0;
+	  last_tkeep_i <= 8'h0;
+	  len <= 16'h0;
+	  rcved_crc <= 32'h0;
+	  tdata_d0 <= 64'h0;
+	  tdata_i <= 64'h0;
+	  tkeep_i <= 8'h0;
+	  tlast_i <= 1'h0;
+	  tuser_i <= 1'h0;
+	  tvalid_d0 <= 1'h0;
+	  // End of automatics
         end
 
         else begin  // not rst

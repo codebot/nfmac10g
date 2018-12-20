@@ -163,6 +163,26 @@ module axis2xgmii (
             fsm <= SRES;
             tx_statistics_valid <= 1'b0;
             tx_statistics_vector <= 26'h0;
+	  /*AUTORESET*/
+	  // Beginning of autoreset for uninitialized flops
+	  aux_dw <= 32'h0;
+	  aux_var_crc = 32'h0;
+	  bcount <= 14'h0;
+	  calcted_crc4B <= 32'h0;
+	  crc_32 <= 32'h0;
+	  crc_32_1B <= 32'h0;
+	  crc_32_2B <= 32'h0;
+	  crc_32_3B <= 32'h0;
+	  crc_32_4B <= 32'h0;
+	  crc_32_5B <= 32'h0;
+	  crc_32_6B <= 32'h0;
+	  crc_32_7B <= 32'h0;
+	  crc_reg <= 32'h0;
+	  dic <= 2'h0;
+	  lane4_start <= 1'h0;
+	  tdata_i <= 64'h0;
+	  tkeep_i <= 8'h0;
+	  // End of automatics
         end
 
         else begin  // not rst
