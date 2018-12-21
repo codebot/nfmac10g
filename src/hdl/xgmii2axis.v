@@ -141,8 +141,6 @@ module xgmii2axis (
                 tvalid <= 1'b0;
             end
 
-          if (tlast_i)
-            set_stats(len, tuser_i);
         end     // not aresetn
     end  //always
 
@@ -471,52 +469,55 @@ module xgmii2axis (
                 end
 
             endcase
+
+            if (tlast_i)
+              set_stats(len, tuser_i);
         end     // not rst
     end  //always
-  
+
     task set_stats;
       input [13:0] bcount;
       input crc_ok;
     begin
       rx_statistics_valid <= 1'b1;
 
-      if (bcount < 14'd64) 
+      if (bcount < 14'd64)
         begin
           if (crc_ok)
-            rx_statistics_vector[`STAT_RX_SMALL] = 1'b1;
+            rx_statistics_vector[`STAT_RX_SMALL] <= 1'b1;
           else
-            rx_statistics_vector[`STAT_RX_FRAGMENT] = 1'b1;
+            rx_statistics_vector[`STAT_RX_FRAGMENT] <= 1'b1;
         end
       else if (bcount == 14'd64)
-        rx_statistics_vector[`STAT_RX_64B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_64B] <= 1'b1;
       else if ((bcount > 14'd64) && (bcount <= 14'd127))
-        rx_statistics_vector[`STAT_RX_65_127B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_65_127B] <= 1'b1;
       else if ((bcount > 14'd127) && (bcount <= 14'd255))
-        rx_statistics_vector[`STAT_RX_128_255B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_128_255B] <= 1'b1;
       else if ((bcount > 14'd255) && (bcount <= 14'd511))
-        rx_statistics_vector[`STAT_RX_256_511B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_256_511B] <= 1'b1;
       else if ((bcount > 14'd511) && (bcount <= 14'd1023))
-        rx_statistics_vector[`STAT_RX_512_1023B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_512_1023B] <= 1'b1;
       else if ((bcount > 14'd1023) && (bcount <= 14'd1518))
-        rx_statistics_vector[`STAT_RX_1024_1518B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_1024_1518B] <= 1'b1;
       else if ((bcount > 14'd1518) && (bcount <= 14'd1522))
-        rx_statistics_vector[`STAT_RX_1519_1522B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_1519_1522B] <= 1'b1;
       else if ((bcount > 14'd1522) && (bcount <= 14'd1548))
-        rx_statistics_vector[`STAT_RX_1523_1548B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_1523_1548B] <= 1'b1;
       else if ((bcount > 14'd1548) && (bcount <= 14'd2047))
-        rx_statistics_vector[`STAT_RX_1549_2047B] = 1'b1;
+        rx_statistics_vector[`STAT_RX_1549_2047B] <= 1'b1;
       else if ((bcount > 14'd2047) && (bcount <= `RX_MTU))
-        rx_statistics_vector[`STAT_RX_2048_MAX] = 1'b1;
-      else 
+        rx_statistics_vector[`STAT_RX_2048_MAX] <= 1'b1;
+      else
         begin
           if (crc_ok)
-            rx_statistics_vector[`STAT_RX_OVERSIZE] = 1'b1;
+            rx_statistics_vector[`STAT_RX_OVERSIZE] <= 1'b1;
           else
-            rx_statistics_vector[`STAT_RX_JABBER] = 1'b1;
+            rx_statistics_vector[`STAT_RX_JABBER] <= 1'b1;
         end
       if ((bcount >= 14'd64) && (bcount <= `RX_MTU) && crc_ok)
         begin
-          rx_statistics_vector[`STAT_RX_GOOD_PKT] = 1'b1;
+          rx_statistics_vector[`STAT_RX_GOOD_PKT] <= 1'b1;
         end
       rx_statistics_vector[`STAT_RX_OCTETS] <= bcount;
     end
