@@ -31,9 +31,6 @@ module rxpause (
     input                    clk,
     input                    rst,
 
-    // Conf vectors
-    input                    rx_pause_enable,
-
     // AXIS Input
     input                    aresetn,
     input   [63:0]      tdata_i,
