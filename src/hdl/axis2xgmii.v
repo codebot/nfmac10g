@@ -115,6 +115,7 @@ module axis2xgmii (
     reg          [31:0]      calcted_crc4B;
     reg          [31:0]      crc_reg;
     reg [13:0]               bcount;
+  reg                        prv_valid;
 
     //-------------------------------------------------------
     // assigns
@@ -123,31 +124,39 @@ module axis2xgmii (
     assign xgmii_c = c;
     assign dic_o = dic;
 
+  function [3:0] count_bits;
+    input [7:0]              tkeep;
+    begin
+      count_bits = ((tkeep[0] + tkeep[1]) + (tkeep[2] + tkeep[3])) + ((tkeep[4] + tkeep[5]) + (tkeep[6] + tkeep[7]));
+    end
+  endfunction
+ 
     task set_stats;
-      input [13:0] bcount;
+      input [13:0] bytes;
     begin
       tx_statistics_valid <= 1'b1;
-      if (bcount == 14'd64)
-        tx_statistics_vector[`STAT_TX_64B] = 1'b1;
-      else if ((bcount > 14'd64) && (bcount <= 14'd127))
-        tx_statistics_vector[`STAT_TX_65_127B] = 1'b1;
-      else if ((bcount > 14'd127) && (bcount <= 14'd255))
-        tx_statistics_vector[`STAT_TX_128_255B] = 1'b1;
-      else if ((bcount > 14'd255) && (bcount <= 14'd511))
-        tx_statistics_vector[`STAT_TX_256_511B] = 1'b1;
-      else if ((bcount > 14'd511) && (bcount <= 14'd1023))
-        tx_statistics_vector[`STAT_TX_512_1023B] = 1'b1;
-      else if ((bcount > 14'd1023) && (bcount <= 14'd1518))
-        tx_statistics_vector[`STAT_TX_1024_1518B] = 1'b1;
-      else if ((bcount > 14'd1518) && (bcount <= 14'd1522))
-        tx_statistics_vector[`STAT_TX_1519_1522B] = 1'b1;
-      else if ((bcount > 14'd1522) && (bcount <= 14'd1548))
-        tx_statistics_vector[`STAT_TX_1523_1548B] = 1'b1;
-      else if ((bcount > 14'd1548) && (bcount <= 14'd2047))
-        tx_statistics_vector[`STAT_TX_1549_2047B] = 1'b1;
-      else if (bcount > 14'd2047)
-        tx_statistics_vector[`STAT_TX_2048_MAX] = 1'b1;
-      tx_statistics_vector[`STAT_TX_OCTETS] <= bcount;
+      if (bytes == 14'd64)
+        tx_statistics_vector[`STAT_TX_64B] <= 1'b1;
+      else if ((bytes > 14'd64) && (bytes <= 14'd127))
+        tx_statistics_vector[`STAT_TX_65_127B] <= 1'b1;
+      else if ((bytes > 14'd127) && (bytes <= 14'd255))
+        tx_statistics_vector[`STAT_TX_128_255B] <= 1'b1;
+      else if ((bytes > 14'd255) && (bytes <= 14'd511))
+        tx_statistics_vector[`STAT_TX_256_511B] <= 1'b1;
+      else if ((bytes > 14'd511) && (bytes <= 14'd1023))
+        tx_statistics_vector[`STAT_TX_512_1023B] <= 1'b1;
+      else if ((bytes > 14'd1023) && (bytes <= 14'd1518))
+        tx_statistics_vector[`STAT_TX_1024_1518B] <= 1'b1;
+      else if ((bytes > 14'd1518) && (bytes <= 14'd1522))
+        tx_statistics_vector[`STAT_TX_1519_1522B] <= 1'b1;
+      else if ((bytes > 14'd1522) && (bytes <= 14'd1548))
+        tx_statistics_vector[`STAT_TX_1523_1548B] <= 1'b1;
+      else if ((bytes > 14'd1548) && (bytes <= 14'd2047))
+        tx_statistics_vector[`STAT_TX_1549_2047B] <= 1'b1;
+      else if (bytes > 14'd2047)
+        tx_statistics_vector[`STAT_TX_2048_MAX] <= 1'b1;
+
+     // bcount <= 14'h0;
     end
     endtask
 
@@ -164,28 +173,40 @@ module axis2xgmii (
             tx_statistics_valid <= 1'b0;
             tx_statistics_vector <= 26'h0;
 	  /*AUTORESET*/
-	  // Beginning of autoreset for uninitialized flops
-	  aux_dw <= 32'h0;
-	  aux_var_crc = 32'h0;
-	  bcount <= 14'h0;
-	  calcted_crc4B <= 32'h0;
-	  crc_32 <= 32'h0;
-	  crc_32_1B <= 32'h0;
-	  crc_32_2B <= 32'h0;
-	  crc_32_3B <= 32'h0;
-	  crc_32_4B <= 32'h0;
-	  crc_32_5B <= 32'h0;
-	  crc_32_6B <= 32'h0;
-	  crc_32_7B <= 32'h0;
-	  crc_reg <= 32'h0;
-	  dic <= 2'h0;
-	  lane4_start <= 1'h0;
-	  tdata_i <= 64'h0;
-	  tkeep_i <= 8'h0;
-	  // End of automatics
+          // Beginning of autoreset for uninitialized flops
+          aux_dw <= 32'h0;
+          aux_var_crc = 32'h0;
+          bcount <= 14'h0;
+          calcted_crc4B <= 32'h0;
+          crc_32 <= 32'h0;
+          crc_32_1B <= 32'h0;
+          crc_32_2B <= 32'h0;
+          crc_32_3B <= 32'h0;
+          crc_32_4B <= 32'h0;
+          crc_32_5B <= 32'h0;
+          crc_32_6B <= 32'h0;
+          crc_32_7B <= 32'h0;
+          crc_reg <= 32'h0;
+          dic <= 2'h0;
+          lane4_start <= 1'h0;
+          prv_valid <= 1'h0;
+          tdata_i <= 64'h0;
+          tkeep_i <= 8'h0;
+          // End of automatics
         end
 
         else begin  // not rst
+          prv_valid <= tvalid;
+          if (tvalid)
+            begin
+              if (!prv_valid)
+                bcount <= count_bits(tkeep);
+              else
+                bcount <= bcount + count_bits(tkeep);
+            end
+          else if (!tvalid & prv_valid)
+            tx_statistics_vector[`STAT_TX_OCTETS] <= bcount + 14'd4;
+
 
             case (fsm)
 
@@ -206,7 +227,7 @@ module axis2xgmii (
                     tx_statistics_valid <= 1'b0;
                     tx_statistics_vector <= 26'b0;
                     tx_statistics_vector[`STAT_TX_GOOD] <= 1'b1;
-                    bcount <= 14'h0;
+                    //bcount <= 14'h0;
                     if (tvalid) begin
                         crc_32 <= crc8B(CRC802_3_PRESET,tdata);
                         d <= PREAMBLE_LANE0_D;
@@ -234,7 +255,7 @@ module axis2xgmii (
                     crc_32_3B <= crc3B(crc_32,tdata[23:0]);
                     crc_32_2B <= crc2B(crc_32,tdata[15:0]);
                     crc_32_1B <= crc1B(crc_32,tdata[7:0]);
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
 
                     casex ({tuser[0], tlast, tkeep[7:3]})
                         {2'b1x, 5'hxx} : begin
@@ -243,7 +264,7 @@ module axis2xgmii (
                             c <= XGMII_ERROR_L0_C;
                             c[7] <= 1'b1;
                             fsm <= QW_IDLE;
-                            tx_statistics_vector[`STAT_TX_GOOD] = 1'b0;
+                            tx_statistics_vector[`STAT_TX_GOOD] <= 1'b0;
                         end
                         {2'b00, 5'hxx} : begin
                             tready <= 1'b1;
@@ -276,7 +297,7 @@ module axis2xgmii (
                     c <= 8'h00;
                     calcted_crc4B <= ~crc_rev(crc_32);
                     fsm <= T_LANE4;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 T_LANE4 : begin
@@ -304,7 +325,7 @@ module axis2xgmii (
                         end
                     endcase
                     c <= 8'b0;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                     crc_reg <= aux_var_crc;
                 end
 
@@ -372,7 +393,7 @@ module axis2xgmii (
                     d <= {~crc_rev(crc_32_4B), tdata_i[31:0]};
                     c <= 8'b0;
                     fsm <= T_LANE0;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 T_LANE0 : begin
@@ -388,19 +409,19 @@ module axis2xgmii (
                             d <= {T, ~crc_rev(crc_32_3B), tdata_i[23:0]};
                             c <= 8'h80;
                             fsm <= T_LANE7;
-                            bcount <= bcount + 14'd7;
+                            //bcount <= bcount + 14'd7;
                         end
                         3'b01x : begin
                             d <= {I, T, ~crc_rev(crc_32_2B), tdata_i[15:0]};
                             c <= 8'hC0;
                             fsm <= T_LANE6;
-                            bcount <= bcount + 14'd6;
+                            //bcount <= bcount + 14'd6;
                         end
                         3'b001 : begin
                             d <= {{2{I}}, T, ~crc_rev(crc_32_1B), tdata_i[7:0]};
                             c <= 8'hE0;
                             fsm <= T_LANE5;
-                            bcount <= bcount + 14'd5;
+                            //bcount <= bcount + 14'd5;
                         end
                     endcase
                 end
@@ -456,7 +477,7 @@ module axis2xgmii (
                     aux_dw <= tdata_i[63:32];
                     tx_statistics_valid <= 1'b0;
                     tx_statistics_vector <= 26'b0;
-                    bcount <= bcount + 14'd4;
+                    //bcount <= bcount + 14'd4;
                     d <= {tdata_i[31:0], PREAMBLE_LANE4_END_D};
                     c <= PREAMBLE_LANE4_END_C;
                     crc_32 <= crc8B(crc_32,tdata);
@@ -471,7 +492,8 @@ module axis2xgmii (
                         tx_statistics_vector[`STAT_TX_GOOD] <= 1'b0;
                     end
                     else begin
-                        fsm <= ST_LANE4_D;
+                      fsm <= ST_LANE4_D;
+                      tx_statistics_vector[`STAT_TX_GOOD] <= 1'b1;
                     end
                 end
 
@@ -481,7 +503,7 @@ module axis2xgmii (
                     tkeep_i <= tkeep;
                     aux_dw <= tdata_i[63:32];
                     d <= {tdata_i[31:0], aux_dw};
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                     c <= 8'b0;
                     crc_32 <= crc8B(crc_32,tdata);
                     crc_32_7B <= crc7B(crc_32,tdata[55:0]);
@@ -497,7 +519,7 @@ module axis2xgmii (
                             d[39:32] <= XGMII_ERROR_L4_D;
                             c <= XGMII_ERROR_L4_C;
                             fsm <= QW_IDLE;
-                            tx_statistics_vector[`STAT_TX_GOOD] <= 1'b1;
+                            tx_statistics_vector[`STAT_TX_GOOD] <= 1'b0;
                         end
                         {2'b00, 5'hxx} : begin
                             tready <= 1'b1;
@@ -523,7 +545,7 @@ module axis2xgmii (
                     tdata_i[31:0] <= tdata_i[63:32];
                     crc_32_4B <= crc_32;
                     fsm <= L0_FIN_4B;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 L4_FIN_7B_6B_5B : begin
@@ -535,7 +557,7 @@ module axis2xgmii (
                     tkeep_i[2:0] <= tkeep_i[6:4];
                     d <= {tdata_i[31:0], aux_dw};
                     fsm <= L0_FIN_3B_2B_1B;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 L4_FIN_4B : begin
@@ -543,7 +565,7 @@ module axis2xgmii (
                     c <= 8'b0;
                     calcted_crc4B <= ~crc_rev(crc_32_4B);
                     fsm <= T_LANE4;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 L4_FIN_3B_2B_1B : begin
@@ -566,7 +588,7 @@ module axis2xgmii (
                     endcase
                     c <= 8'b0;
                     crc_reg <= aux_var_crc;
-                    bcount <= bcount + 14'd8;
+                    //bcount <= bcount + 14'd8;
                 end
 
                 default : begin
