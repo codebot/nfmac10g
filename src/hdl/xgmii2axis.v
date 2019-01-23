@@ -193,6 +193,8 @@ module xgmii2axis (
 
             tdata_i <= tdata_d0;
             tvalid_i <= tvalid_d0;
+          rx_statistics_valid <= 1'b0;
+
 
             case (fsm)
 
@@ -211,7 +213,6 @@ module xgmii2axis (
                     d_reg <= d;
                     c_reg <= c;
                     len <= 0;
-                  rx_statistics_valid <= 1'b0;
                   rx_statistics_vector <= 0;
                     if (sof_lane0(d,c)) begin
                         inbound_frame <= 1'b1;
@@ -247,18 +248,27 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
                             if ((~crc_rev(crc_32_4B) == d_reg[63:32]) && is_tchar(d[7:0])) begin
-                                tuser_i[0] <= 1'b1;
+                              tuser_i[0] <= 1'b1;
+                              set_stats(len, 1);
                             end
-                            fsm <= IDLE;
+                            else
+                              set_stats(len, 0);
+                          fsm <= IDLE;
+                          
                         end
                         8'hFE : begin
                             len <= len + 1;
                             tkeep_i <= 8'h1F;
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
-                            if ((~crc_rev(crc_32_5B) == {d[7:0], d_reg[63:40]}) && is_tchar(d[15:8])) begin
+                            if ((~crc_rev(crc_32_5B) == {d[7:0], d_reg[63:40]}) && is_tchar(d[15:8])) 
+                              begin
                                 tuser_i[0] <= 1'b1;
-                            end
+                                set_stats(len+1, 1);
+                              end
+                            else
+                              set_stats(len+1, 0);
+
                             fsm <= IDLE;
                         end
                         8'hFC : begin
@@ -267,8 +277,11 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
                             if ((~crc_rev(crc_32_6B) == {d[15:0], d_reg[63:48]}) && is_tchar(d[23:16])) begin
-                                tuser_i[0] <= 1'b1;
+                              tuser_i[0] <= 1'b1;
+                              set_stats(len+2, 1);
                             end
+                          else
+                            set_stats(len+2, 0);
                             fsm <= IDLE;
                         end
                         8'hF8 : begin
@@ -276,19 +289,27 @@ module xgmii2axis (
                             tkeep_i <= 8'h7F;
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
-                            if ((~crc_rev(crc_32_7B) == {d[23:0], d_reg[63:56]}) && is_tchar(d[31:24])) begin
+                            if ((~crc_rev(crc_32_7B) == {d[23:0], d_reg[63:56]}) && is_tchar(d[31:24])) 
+                              begin
                                 tuser_i[0] <= 1'b1;
-                            end
+                                set_stats(len+3, 1);
+                              end
+                            else
+                              set_stats(len+3, 0);
                             fsm <= IDLE;
                         end
                         8'hF0 : begin
                             len <= len + 4;
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
-                            if ((~crc_rev(crc_32) == d[31:0]) && is_tchar(d[39:32])) begin
-                                tuser_i[0] <= 1'b1;
+                          if ((~crc_rev(crc_32) == d[31:0]) && is_tchar(d[39:32]))
+                            begin
+                              tuser_i[0] <= 1'b1;
+                              set_stats(len+4, 1);
                             end
-                            fsm <= IDLE;
+                          else
+                            set_stats(len+4, 0);
+                          fsm <= IDLE;
                         end
                         8'hE0 : begin
                             len <= len + 5;
@@ -319,6 +340,7 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tvalid_i <= 1'b1;
                             fsm <= IDLE;
+                          set_stats(len, tuser_i[0]);
                         end
                     endcase
                 end
@@ -328,9 +350,14 @@ module xgmii2axis (
                     tlast_i <= 1'b1;
                     tvalid_d0 <= 1'b0;
                     crc_32 <= CRC802_3_PRESET;
-                    if ((~crc_rev(calcted_crc) == rcved_crc) && chk_tchar) begin
+                    if ((~crc_rev(calcted_crc) == rcved_crc) && chk_tchar) 
+                      begin
                         tuser_i[0] <= 1'b1;
-                    end
+                        set_stats(len, 1);
+                      end
+                    else
+                      set_stats(len, 0);
+
                     if (sof_lane4(d,c)) begin
                         fsm <= ST_LANE4;
                     end
@@ -374,9 +401,14 @@ module xgmii2axis (
                             len <= len;
                             tvalid_d0 <= 1'b0;
                             tlast_i <= 1'b1;
-                            if ((~crc_rev(crc_32_4B) == d_reg[63:32]) && is_tchar(d[7:0])) begin
+                            if ((~crc_rev(crc_32_4B) == d_reg[63:32]) && is_tchar(d[7:0])) 
+                              begin
                                 tuser_i[0] <= 1'b1;
-                            end
+                                set_stats(len, 1);
+                              end
+                            else
+                              set_stats(len, 0);
+
                             fsm <= IDLE;
                         end
                         8'hFE : begin
@@ -440,6 +472,7 @@ module xgmii2axis (
                             tvalid_d0 <= 1'b0;
                             tvalid_i <= 1'b1;
                             fsm <= IDLE;
+                          set_stats(len, tuser_i[0]);
                         end
                     endcase
                 end
@@ -451,8 +484,12 @@ module xgmii2axis (
                     tvalid_d0 <= 1'b0;
                     crc_32 <= CRC802_3_PRESET;
                     if ((~crc_rev(calcted_crc) == rcved_crc) && chk_tchar) begin
-                        tuser_i[0] <= 1'b1;
+                      tuser_i[0] <= 1'b1;
+                      set_stats(len, 1);
                     end
+                    else
+                      set_stats(len, 0);
+
                     if (sof_lane0(d,c)) begin
                         fsm <= ST_LANE0;
                     end
@@ -470,8 +507,8 @@ module xgmii2axis (
 
             endcase
 
-            if (tlast_i)
-              set_stats(len, tuser_i);
+            //if (tlast_i)
+            //  set_stats(len, tuser_i);
         end     // not rst
     end  //always
 
