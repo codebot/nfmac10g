@@ -116,6 +116,8 @@ module axis2xgmii (
     reg          [31:0]      crc_reg;
     reg [13:0]               bcount;
   reg                        prv_valid;
+  wire                       short_preamble;
+  wire                       min_ipg;
 
     //-------------------------------------------------------
     // assigns
@@ -123,6 +125,8 @@ module axis2xgmii (
     assign xgmii_d = d;
     assign xgmii_c = c;
     assign dic_o = dic;
+  assign short_preamble = configuration_vector[`CFG_TX_SHORT_PREAMBLE];
+  assign min_ipg = configuration_vector[`CFG_TX_MIN_IPG];
 
   function [3:0] count_bits;
     input [7:0]              tkeep;
@@ -229,10 +233,10 @@ module axis2xgmii (
                     tx_statistics_vector[`STAT_TX_GOOD] <= 1'b1;
                     //bcount <= 14'h0;
                     if (tvalid) begin
-                        crc_32 <= crc8B(CRC802_3_PRESET,tdata);
-                        d <= PREAMBLE_LANE0_D;
-                        c <= PREAMBLE_LANE0_C;
-                        fsm <= ST_LANE0;
+                      crc_32 <= crc8B(CRC802_3_PRESET,tdata);
+                      c <= PREAMBLE_LANE0_C;
+                      d <= PREAMBLE_LANE0_D;
+                      fsm <= ST_LANE0;
                     end
                     else begin
                         if (dic) begin
@@ -263,8 +267,8 @@ module axis2xgmii (
                             d[63:56] <= T;
                             c <= XGMII_ERROR_L0_C;
                             c[7] <= 1'b1;
-                            fsm <= QW_IDLE;
-                            tx_statistics_vector[`STAT_TX_GOOD] <= 1'b0;
+                          fsm <= QW_IDLE;
+                          tx_statistics_vector[`STAT_TX_GOOD] <= 1'b0;
                         end
                         {2'b00, 5'hxx} : begin
                             tready <= 1'b1;
@@ -303,6 +307,13 @@ module axis2xgmii (
                 T_LANE4 : begin
                     d <= {{3{I}}, T, calcted_crc4B};
                     c <= 8'hF0;
+                  if (min_ipg)
+                    begin
+                      tready <= 1'b1;
+                      set_stats(bcount);
+                      fsm <= IDLE_L0;
+                    end
+                  else
                     fsm <= QW_IDLE;
                 end
 
@@ -330,17 +341,22 @@ module axis2xgmii (
                 end
 
                 T_LANE3 : begin
-                    d <= {{4{I}}, T, crc_reg[31:8]};
-                    c <= 8'hF8;
-                    if (!dic) begin
-                        dic <= 'h3;
-                        tready <= 1'b1;
-                        fsm <= DW_IDLE;
+                  d <= {{4{I}}, T, crc_reg[31:8]};
+                  c <= 8'hF8;
+                  if (min_ipg)
+                    begin
+                      fsm <= IDLE_L0;
+                      set_stats(bcount);
                     end
-                    else begin
-                        dic <= dic - 1;
-                        fsm <= QW_IDLE;
-                    end
+                  else if (!dic) begin
+                    dic <= 'h3;
+                    tready <= 1'b1;
+                    fsm <= DW_IDLE;
+                  end
+                  else begin
+                    dic <= dic - 1;
+                    fsm <= QW_IDLE;
+                  end
                 end
 
                 DW_IDLE : begin
@@ -351,10 +367,10 @@ module axis2xgmii (
                     set_stats(bcount);
 
                     if (tvalid) begin
-                        crc_32 <= crc8B(CRC802_3_PRESET,tdata);
-                        d <= PREAMBLE_LANE4_D;
-                        c <= PREAMBLE_LANE4_C;
-                        fsm <= ST_LANE4;
+                      crc_32 <= crc8B(CRC802_3_PRESET,tdata);
+                      c <= PREAMBLE_LANE4_C;
+                      d <= PREAMBLE_LANE4_D;
+                      fsm <= ST_LANE4;
                     end
                     else begin
                         fsm <= IDLE_L0;
@@ -364,7 +380,13 @@ module axis2xgmii (
                 T_LANE2 : begin
                     d <= {{5{I}}, T, crc_reg[31:16]};
                     c <= 8'hFC;
-                    if (dic < 2) begin
+                  if (min_ipg)
+                    begin
+                      fsm <= IDLE_L0;
+                      tready <= 1'b1;
+                      set_stats(bcount);
+                    end
+                  else if (dic < 2) begin
                         dic <= dic + 2;
                         tready <= 1'b1;
                         fsm <= DW_IDLE;
@@ -378,7 +400,13 @@ module axis2xgmii (
                 T_LANE1 : begin
                     d <= {{6{I}}, T, crc_reg[31:24]};
                     c <= 8'hFE;
-                    if (dic < 3) begin
+                  if (min_ipg)
+                    begin
+                      fsm <= IDLE_L0;
+                      tready <= 1'b1;
+                      set_stats(bcount);
+                    end
+                  else if (dic < 3) begin
                         dic <= dic + 1;
                         tready <= 1'b1;
                         fsm <= DW_IDLE;
@@ -400,6 +428,9 @@ module axis2xgmii (
                     d <= {{7{I}}, T};
                     c <= 8'hFF;
                     tready <= 1'b1;
+                  if (min_ipg)
+                    fsm <= IDLE_L0;
+                  else
                     fsm <= DW_IDLE;
                 end
 
@@ -430,44 +461,47 @@ module axis2xgmii (
                     d <= QW_IDLE_D;
                     c <= QW_IDLE_C;
                     tready <= 1'b1;
-                    if (!dic) begin
-                        dic <= 'h3;
-                        fsm <= IDLE_L0;
-                        set_stats(bcount);
+                  if (min_ipg | !dic) 
+                    begin
+                      dic <= 'h3;
+                      fsm <= IDLE_L0;
+                      set_stats(bcount);
                     end
-                    else begin
-                        dic <= dic - 1;
-                        fsm <= DW_IDLE;
-                    end
+                  else begin
+                    dic <= dic - 1;
+                    fsm <= DW_IDLE;
+                  end
                 end
 
                 T_LANE6 : begin
                     d <= QW_IDLE_D;
                     c <= QW_IDLE_C;
                     tready <= 1'b1;
-                    if (dic < 2) begin
-                        dic <= dic + 2;
-                        fsm <= IDLE_L0;
-                        set_stats(bcount);
+                  if (min_ipg | dic < 2) 
+                    begin
+                      dic <= dic + 2;
+                      fsm <= IDLE_L0;
+                      set_stats(bcount);
                     end
-                    else begin
-                        dic <= dic - 2;
-                        fsm <= DW_IDLE;
-                    end
+                  else begin
+                    dic <= dic - 2;
+                    fsm <= DW_IDLE;
+                  end
                 end
 
                 T_LANE5 : begin
                     d <= QW_IDLE_D;
                     c <= QW_IDLE_C;
                     tready <= 1'b1;
-                    if (dic < 3) begin
+                    if (min_ipg | dic < 3) 
+                      begin
                         dic <= dic + 1;
                         fsm <= IDLE_L0;
                         set_stats(bcount);
-                    end
+                      end
                     else begin
-                        dic <= 'b0;
-                        fsm <= DW_IDLE;
+                      dic <= 'b0;
+                      fsm <= DW_IDLE;
                     end
                 end
 
@@ -498,12 +532,11 @@ module axis2xgmii (
                 end
 
                 ST_LANE4_D : begin
-                    tready <= 1'b0;
-                    tdata_i <= tdata;
-                    tkeep_i <= tkeep;
-                    aux_dw <= tdata_i[63:32];
-                    d <= {tdata_i[31:0], aux_dw};
-                    //bcount <= bcount + 14'd8;
+                  tready <= 1'b0;
+                  tdata_i <= tdata;
+                  tkeep_i <= tkeep;
+                  aux_dw <= tdata_i[63:32];
+                  d <= {tdata_i[31:0], aux_dw};
                     c <= 8'b0;
                     crc_32 <= crc8B(crc_32,tdata);
                     crc_32_7B <= crc7B(crc_32,tdata[55:0]);

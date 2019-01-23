@@ -37,8 +37,12 @@
     localparam PREAMBLE_LANE0_D = {56'hD5555555555555, S};
     localparam PREAMBLE_LANE0_C = 8'h01;
 
+    localparam SHORT_PREAMBLE_LANE0_D = {24'hD55555, S};
+
     localparam PREAMBLE_LANE4_D = {24'h555555, S, {4{I}}};
     localparam PREAMBLE_LANE4_C = 8'h1F;
+
+    localparam SHORT_PREAMBLE_LANE4_D = {24'hD55555, S, {4{I}}};
 
     localparam PREAMBLE_LANE4_END_D = 32'hD5555555;
     localparam PREAMBLE_LANE4_END_C = 8'b0;
@@ -93,6 +97,10 @@
     `define STAT_TX_1549_2047B    23
     `define STAT_TX_2048_MAX      24
 
+    `define CFG_RX_SHORT_PREAMBLE      0
+    `define CFG_RX_MIN_IPG 1
+    `define CFG_TX_SHORT_PREAMBLE      0
+    `define CFG_TX_MIN_IPG 1
 
     ////////////////////////////////////////////////
     // sof_lane0
