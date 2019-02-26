@@ -136,9 +136,11 @@ module axis2xgmii (
   endfunction
  
     task set_stats;
-      input [13:0] bytes;
+      input [13:0] ibytes;
+      reg [13:0] bytes;
     begin
       tx_statistics_valid <= 1'b1;
+      bytes = ibytes + 14'd4;
       if (bytes == 14'd64)
         tx_statistics_vector[`STAT_TX_64B] <= 1'b1;
       else if ((bytes > 14'd64) && (bytes <= 14'd127))
@@ -160,6 +162,7 @@ module axis2xgmii (
       else if (bytes > 14'd2047)
         tx_statistics_vector[`STAT_TX_2048_MAX] <= 1'b1;
 
+      tx_statistics_vector[`STAT_TX_OCTETS] <= bytes;
      // bcount <= 14'h0;
     end
     endtask
@@ -208,9 +211,6 @@ module axis2xgmii (
               else
                 bcount <= bcount + count_bits(tkeep);
             end
-          else if (!tvalid & prv_valid)
-            tx_statistics_vector[`STAT_TX_OCTETS] <= bcount + 14'd4;
-
 
             case (fsm)
 

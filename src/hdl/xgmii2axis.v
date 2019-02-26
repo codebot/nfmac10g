@@ -520,8 +520,9 @@ module xgmii2axis (
 
       if (bcount < 14'd64)
         begin
+          rx_statistics_vector[`STAT_RX_SMALL] <= 1'b1;
           if (crc_ok)
-            rx_statistics_vector[`STAT_RX_SMALL] <= 1'b1;
+            rx_statistics_vector[`STAT_RX_UNDERSIZE] <= 1'b1;
           else
             rx_statistics_vector[`STAT_RX_FRAGMENT] <= 1'b1;
         end
@@ -545,16 +546,19 @@ module xgmii2axis (
         rx_statistics_vector[`STAT_RX_1549_2047B] <= 1'b1;
       else if ((bcount > 14'd2047) && (bcount <= `RX_MTU))
         rx_statistics_vector[`STAT_RX_2048_MAX] <= 1'b1;
-      else
+
+      //if ((bcount >= 14'd64) && (bcount <= `RX_MTU) && crc_ok)
+      if (crc_ok)
+        begin
+          rx_statistics_vector[`STAT_RX_GOOD_PKT] <= 1'b1;
+        end
+
+      if (bcount > 14'd1518)
         begin
           if (crc_ok)
             rx_statistics_vector[`STAT_RX_OVERSIZE] <= 1'b1;
           else
             rx_statistics_vector[`STAT_RX_JABBER] <= 1'b1;
-        end
-      if ((bcount >= 14'd64) && (bcount <= `RX_MTU) && crc_ok)
-        begin
-          rx_statistics_vector[`STAT_RX_GOOD_PKT] <= 1'b1;
         end
       rx_statistics_vector[`STAT_RX_OCTETS] <= bcount;
     end
